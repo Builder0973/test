@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>수면 감지 결과</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>📊 수면 감지 결과 요약</h1>
+            <p class="subtitle">모니터링 세션 상세 분석</p>
+        </header>
+
+        <main class="results-content">
+            <!-- 요약 카드 -->
+            <section class="summary-cards">
+                <div class="card">
+                    <h3>⏱️ 총 모니터링 시간</h3>
+                    <div class="large-value" id="totalDuration">00:00:00</div>
+                </div>
+                <div class="card">
+                    <h3>😴 총 수면 시간</h3>
+                    <div class="large-value" id="totalSleep">00:00:00</div>
+                </div>
+                <div class="card">
+                    <h3>🎯 수면률</h3>
+                    <div class="large-value percentage" id="sleepPercentage">0%</div>
+                </div>
+                <div class="card">
+                    <h3>✅ 깨어있는 시간</h3>
+                    <div class="large-value" id="awakeTime">00:00:00</div>
+                </div>
+            </section>
+
+            <!-- 시간 범위 -->
+            <section class="time-section">
+                <h2>🕐 모니터링 시간대</h2>
+                <div class="time-info">
+                    <div class="time-item">
+                        <span class="time-label">시작:</span>
+                        <span class="time-value" id="startTime">-</span>
+                    </div>
+                    <div class="time-item">
+                        <span class="time-label">종료:</span>
+                        <span class="time-value" id="endTime">-</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 시간 단위 선택 -->
+            <section class="unit-selection">
+                <h3>⏱️ 시간 단위 선택</h3>
+                <div class="unit-buttons">
+                    <button class="unit-btn active" onclick="changeTimeUnit('auto')">자동</button>
+                    <button class="unit-btn" onclick="changeTimeUnit('seconds')">초로 표시</button>
+                    <button class="unit-btn" onclick="changeTimeUnit('minutes')">분으로 표시</button>
+                    <button class="unit-btn" onclick="changeTimeUnit('hours')">시간으로 표시</button>
+                </div>
+            </section>
+
+            <!-- 수면 기간 로그 -->
+            <section class="log-section">
+                <h2>📝 수면 기간 로그</h2>
+                <div id="sleepLog" class="sleep-log">
+                    <!-- 동적으로 생성됨 -->
+                </div>
+            </section>
+
+            <!-- 그래프 -->
+            <section class="chart-section">
+                <h2>📈 통계 그래프</h2>
+                <div class="chart-container">
+                    <canvas id="sleepChart" width="400" height="200"></canvas>
+                </div>
+            </section>
+
+            <!-- 액션 버튼 -->
+            <section class="action-buttons">
+                <button class="btn btn-primary" onclick="goBack()">
+                    <span class="btn-icon">◀</span> 처음으로
+                </button>
+                <button class="btn btn-info" onclick="downloadResults()">
+                    <span class="btn-icon">⬇️</span> 저장
+                </button>
+                <button class="btn btn-secondary" onclick="window.print()">
+                    <span class="btn-icon">🖨️</span> 인쇄
+                </button>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>© 2024 수면 감지 시스템 - 수업 모니터링용</p>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="{{ url_for('static', filename='js/results.js') }}"></script>
+    <script>
+        // 서버에서 전달받은 데이터
+        const summaryData = {{ summary | safe }};
+        initializeResults(summaryData);
+    </script>
+</body>
+</html>

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>sleep detection</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>😴 Sleep Detection Monitoring System</h1>
+            <p class="subtitle">Real-time Eye Closure Detection using MediaPipe</p>
+        </header>
+
+        <main class="main-content">
+            <!-- 카메라 영상 섹션 -->
+            <section class="video-section">
+                <div class="video-container">
+                    <img id="videoStream" src="{{ url_for('video_feed') }}" alt="Video Stream">
+                    <div class="status-overlay" id="statusOverlay">
+                        <div class="status-badge" id="statusBadge">READY</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 제어 패널 -->
+            <section class="control-section">
+                <div class="control-panel">
+                    <!-- 녹화 제어 -->
+                    <div class="control-group recording-group">
+                        <h3>📹 녹화 제어</h3>
+                        <div class="button-group">
+                            <button id="startBtn" class="btn btn-primary" onclick="startRecording()">
+                                <span class="btn-icon">▶</span> 시작
+                            </button>
+                            <button id="stopBtn" class="btn btn-danger" onclick="stopRecording()" disabled>
+                                <span class="btn-icon">⏹</span> 중지
+                            </button>
+                        </div>
+                        <div class="timer" id="timer">00:00:00</div>
+                    </div>
+
+                    <!-- 신호 제어 -->
+                    <div class="control-group signal-group">
+                        <h3>🔔 신호 제어</h3>
+                        <div class="toggle-group">
+                            <div class="toggle-item">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="soundToggle" checked onchange="toggleSettings('sound')">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <span class="toggle-label">소리 신호</span>
+                            </div>
+                            <div class="toggle-item">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="flashingToggle" checked onchange="toggleSettings('flashing')">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <span class="toggle-label">점멸 신호</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 임계값 설정 -->
+                    <div class="control-group threshold-group">
+                        <h3>⚙️ 임계값 설정</h3>
+                        <div class="threshold-item">
+                            <label>수면 판정 시간 (초)</label>
+                            <div class="slider-container">
+                                <input type="range" id="sleepThreshold" min="5" max="60" value="20" 
+                                       oninput="updateThreshold('sleep', this.value)">
+                                <span class="threshold-value" id="sleepThresholdValue">20초</span>
+                            </div>
+                        </div>
+                        <div class="threshold-item">
+                            <label>눈 감감 감지 민감도</label>
+                            <div class="slider-container">
+                                <input type="range" id="earThreshold" min="0.05" max="0.35" step="0.01" value="0.15" 
+                                       oninput="updateThreshold('ear', this.value)">
+                                <span class="threshold-value" id="earThresholdValue">0.15</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 실시간 통계 -->
+                    <div class="control-group stats-group">
+                        <h3>📊 실시간 통계</h3>
+                        <div class="stat-display">
+                            <div class="stat-item">
+                                <span class="stat-label">총 시간:</span>
+                                <span class="stat-value" id="totalTime">0초</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">수면 시간:</span>
+                                <span class="stat-value" id="sleepTime">0초</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">수면률:</span>
+                                <span class="stat-value" id="sleepPercent">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 결과 버튼 -->
+            <section class="result-section">
+                <button id="resultBtn" class="btn btn-info" onclick="goToResults()" disabled>
+                    <span class="btn-icon">📈</span> 결과 보기
+                </button>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>© 2024 수면 감지 시스템 - 수업 모니터링용</p>
+        </footer>
+    </div>
+
+    <!-- 소리 알람 (숨겨진 오디오) -->
+    <audio id="alarmSound" preload="auto">
+        <source src="data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEAQB8AAAB9AAACABAAZGF0YQIAAAAAAA==" type="audio/wav">
+    </audio>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
