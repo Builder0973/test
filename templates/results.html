@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session Results — Sleep Detection</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header class="results-header">
+            <span class="header-eyebrow">Session Summary</span>
+            <h1>Analysis Report</h1>
+        </header>
+
+        <main class="results-content">
+
+            <!-- Summary Cards -->
+            <section class="summary-cards">
+                <div class="card">
+                    <h3>Total Monitored</h3>
+                    <div class="large-value" id="totalDuration">00:00:00</div>
+                </div>
+                <div class="card">
+                    <h3>Total Sleep</h3>
+                    <div class="large-value" id="totalSleep">00:00:00</div>
+                </div>
+                <div class="card">
+                    <h3>Sleep Rate</h3>
+                    <div class="large-value percentage" id="sleepPercentage">0%</div>
+                </div>
+                <div class="card">
+                    <h3>Awake Time</h3>
+                    <div class="large-value" id="awakeTime">00:00:00</div>
+                </div>
+            </section>
+
+            <!-- Session Time Range -->
+            <section class="results-section">
+                <div class="results-section-header">
+                    <div class="accent-line"></div>
+                    <h2>Session Time Range</h2>
+                </div>
+                <div class="results-section-body">
+                    <div class="time-info">
+                        <div class="time-item">
+                            <span class="time-label">Session Start</span>
+                            <span class="time-value" id="startTime">—</span>
+                        </div>
+                        <div class="time-item">
+                            <span class="time-label">Session End</span>
+                            <span class="time-value" id="endTime">—</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sleep Period Log -->
+            <section class="results-section">
+                <div class="results-section-header">
+                    <div class="accent-line"></div>
+                    <h2>Sleep Period Log</h2>
+                </div>
+                <div class="results-section-body">
+                    <div id="sleepLog" class="sleep-log">
+                        <!-- Dynamically generated -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Chart -->
+            <section class="results-section">
+                <div class="results-section-header">
+                    <div class="accent-line"></div>
+                    <h2>Distribution Chart</h2>
+                </div>
+                <div class="results-section-body">
+                    <div class="chart-container">
+                        <canvas id="sleepChart" width="400" height="280"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Actions -->
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="goBack()">
+                    Back to Monitor
+                </button>
+                <button class="btn btn-secondary" onclick="window.print()">
+                    Print Report
+                </button>
+            </div>
+
+        </main>
+
+        <footer class="footer">
+            <p>Sleep Detection System — Classroom Monitoring / 2024</p>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="{{ url_for('static', filename='js/results.js') }}"></script>
+    <script>
+        const summaryData = {{ summary | safe }};
+        initializeResults(summaryData);
+    </script>
+</body>
+</html>

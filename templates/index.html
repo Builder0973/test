@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sleep Detection — Monitoring System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-left">
+                <span class="header-eyebrow">Real-time Monitoring</span>
+                <h1>Sleep <span>Detection</span></h1>
+                <p class="subtitle">Eye closure analysis via MediaPipe</p>
+            </div>
+            <div class="header-status" id="headerStatus">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">STANDBY</span>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- Video Feed -->
+            <section class="video-section">
+                <div class="video-wrapper">
+                    <img id="videoStream" src="{{ url_for('video_feed') }}" alt="Live Camera Feed">
+                    <div class="status-overlay">
+                        <div class="status-badge" id="statusBadge">READY</div>
+                    </div>
+                </div>
+                <div class="video-label">
+                    <span>LIVE FEED — MediaPipe Face Mesh</span>
+                    <span id="sessionLabel">SESSION NOT STARTED</span>
+                </div>
+            </section>
+
+            <!-- Control Sidebar -->
+            <aside class="control-section">
+
+                <!-- Recording Control -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Recording Control</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="button-group">
+                            <button id="startBtn" class="btn btn-primary" onclick="startRecording()">
+                                Start
+                            </button>
+                            <button id="stopBtn" class="btn btn-danger" onclick="stopRecording()" disabled>
+                                Stop
+                            </button>
+                        </div>
+                        <div class="timer" id="timer">00:00:00</div>
+                    </div>
+                </div>
+
+                <!-- Signal Settings -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Alert Settings</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="toggle-group">
+                            <div class="toggle-item">
+                                <span class="toggle-label">Sound Alert</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="soundToggle" checked onchange="toggleSettings('sound')">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="toggle-item">
+                                <span class="toggle-label">Flash Alert</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="flashingToggle" checked onchange="toggleSettings('flashing')">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Threshold Settings -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Thresholds</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="threshold-item">
+                            <div class="threshold-header">
+                                <label>Sleep detection time</label>
+                                <span class="threshold-value" id="sleepThresholdValue">20s</span>
+                            </div>
+                            <div class="range-track">
+                                <input type="range" id="sleepThreshold" min="5" max="60" value="20"
+                                       oninput="updateThreshold('sleep', this.value)">
+                            </div>
+                        </div>
+                        <div class="threshold-item">
+                            <div class="threshold-header">
+                                <label>Eye closure sensitivity (EAR)</label>
+                                <span class="threshold-value" id="earThresholdValue">0.15</span>
+                            </div>
+                            <div class="range-track">
+                                <input type="range" id="earThreshold" min="0.05" max="0.35" step="0.01" value="0.15"
+                                       oninput="updateThreshold('ear', this.value)">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Stats -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Live Statistics</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="stat-display">
+                            <div class="stat-item">
+                                <span class="stat-label">Total time</span>
+                                <span class="stat-value" id="totalTime">0s</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Sleep time</span>
+                                <span class="stat-value" id="sleepTime">0s</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Sleep rate</span>
+                                <span class="stat-value" id="sleepPercent">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </aside>
+
+            <!-- View Results -->
+            <section class="result-section">
+                <button id="resultBtn" class="btn btn-info" onclick="goToResults()" disabled>
+                    View Session Results
+                </button>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>Sleep Detection System — Classroom Monitoring / 2024</p>
+        </footer>
+    </div>
+
+    <audio id="alarmSound" preload="auto">
+        <source src="data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEAQB8AAAB9AAACABAAZGF0YQIAAAAAAA==" type="audio/wav">
+    </audio>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

@@ -1,35 +1,34 @@
 let chart = null;
-let timeUnit = 'auto'; // 'auto', 'seconds', 'minutes', 'hours'
+let timeUnit = 'auto';
 
-function formatTime(seconds, unit = 'auto') {
+function formatTime(seconds, unit) {
     unit = unit || timeUnit || 'auto';
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = Math.floor(seconds % 60);
 
     if (unit === 'seconds') {
-        return `${Math.floor(seconds)}초`;
+        return `${Math.floor(seconds)}s`;
     } else if (unit === 'minutes') {
         const totalMinutes = Math.floor(seconds / 60);
         const remainingSecs = Math.floor(seconds % 60);
-        return totalMinutes > 0 ? `${totalMinutes}분 ${remainingSecs}초` : `${remainingSecs}초`;
+        return totalMinutes > 0 ? `${totalMinutes}m ${remainingSecs}s` : `${remainingSecs}s`;
     } else if (unit === 'hours') {
-        return hours > 0 ? `${hours}시간 ${minutes}분 ${secs}초` : (minutes > 0 ? `${minutes}분 ${secs}초` : `${secs}초`);
+        return hours > 0
+            ? `${hours}h ${minutes}m ${secs}s`
+            : minutes > 0
+            ? `${minutes}m ${secs}s`
+            : `${secs}s`;
     } else {
-        // auto: 자동 선택
-        if (seconds >= 3600) {
-            return `${hours}시간 ${minutes}분 ${secs}초`;
-        } else if (seconds >= 60) {
-            return `${minutes}분 ${secs}초`;
-        } else {
-            return `${secs}초`;
-        }
+        if (seconds >= 3600) return `${hours}h ${minutes}m ${secs}s`;
+        if (seconds >= 60) return `${minutes}m ${secs}s`;
+        return `${secs}s`;
     }
 }
 
 function formatDateTime(isoString) {
     const date = new Date(isoString);
-    return date.toLocaleString('ko-KR', {
+    return date.toLocaleString('en-US', {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
@@ -41,60 +40,49 @@ function formatDateTime(isoString) {
 
 function initializeResults(summaryData) {
     if (!summaryData || Object.keys(summaryData).length === 0) {
-        document.querySelector('.results-content').innerHTML = '<p>데이터를 불러올 수 없습니다.</p>';
+        document.querySelector('.results-content').innerHTML =
+            '<p style="font-family: var(--font-mono); color: var(--text-muted); padding: 48px; text-align: center;">No session data available.</p>';
         return;
     }
 
-    window.summaryData = summaryData; // 단위변경 시 사용
-    
-    // 총 모니터링 시간
+    window.summaryData = summaryData;
+
     const totalDuration = summaryData.total_duration || 0;
     document.getElementById('totalDuration').textContent = formatTime(totalDuration, timeUnit);
 
-    // 총 수면 시간
     const totalSleep = summaryData.total_sleep_seconds || 0;
     document.getElementById('totalSleep').textContent = formatTime(totalSleep, timeUnit);
 
-    // 수면률
     const sleepPercentage = summaryData.sleep_percentage || 0;
     document.getElementById('sleepPercentage').textContent = `${sleepPercentage.toFixed(0)}%`;
 
-    // 깨어있는 시간
     const awakeSeconds = totalDuration - totalSleep;
     document.getElementById('awakeTime').textContent = formatTime(awakeSeconds, timeUnit);
 
-    // 시작 및 종료 시간
     document.getElementById('startTime').textContent = formatDateTime(summaryData.start_time);
     document.getElementById('endTime').textContent = formatDateTime(summaryData.end_time);
 
-    // 수면 기간 로그
     displaySleepLog(summaryData.sleep_periods || []);
-
-    // 차트 생성
     createChart(totalDuration, totalSleep, awakeSeconds, sleepPercentage);
 }
 
 function displaySleepLog(sleepPeriods) {
     const logContainer = document.getElementById('sleepLog');
-    
+
     if (!sleepPeriods || sleepPeriods.length === 0) {
-        logContainer.innerHTML = '<p class="log-entry" style="border: none; background: transparent;">수면 기간 없음</p>';
+        logContainer.innerHTML = '<p class="no-data">No sleep periods recorded during this session.</p>';
         return;
     }
 
     let html = '';
     sleepPeriods.forEach((period, index) => {
-        const startTime = formatDateTime(period.start);
-        const endTime = formatDateTime(period.end);
-        const duration = formatTime(period.duration, timeUnit);
-
         html += `
             <div class="log-entry">
-                <div>
-                    <div class="log-time">📍 ${index + 1}번 수면</div>
-                    <div class="log-time">${startTime} ~ ${endTime}</div>
+                <div class="log-entry-left">
+                    <span class="log-index">Sleep Event ${index + 1}</span>
+                    <span class="log-time">${formatDateTime(period.start)} &ndash; ${formatDateTime(period.end)}</span>
                 </div>
-                <div class="log-duration">⏱️ ${duration}</div>
+                <div class="log-duration">${formatTime(period.duration, timeUnit)}</div>
             </div>
         `;
     });
@@ -108,12 +96,11 @@ function changeTimeUnit(unit) {
         const totalDuration = window.summaryData.total_duration || 0;
         const totalSleep = window.summaryData.total_sleep_seconds || 0;
         const awakeSeconds = totalDuration - totalSleep;
-        
+
         document.getElementById('totalDuration').textContent = formatTime(totalDuration, unit);
         document.getElementById('totalSleep').textContent = formatTime(totalSleep, unit);
         document.getElementById('awakeTime').textContent = formatTime(awakeSeconds, unit);
-        
-        // 로그 다시 그리기
+
         displaySleepLog(window.summaryData.sleep_periods || []);
     }
 }
@@ -121,44 +108,53 @@ function changeTimeUnit(unit) {
 function createChart(totalDuration, totalSleep, awakeSeconds, sleepPercentage) {
     const ctx = document.getElementById('sleepChart').getContext('2d');
 
-    // 차트가 이미 존재하면 제거
-    if (chart) {
-        chart.destroy();
-    }
+    if (chart) chart.destroy();
 
     chart = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['수면', '깨어있음'],
+            labels: ['Sleep', 'Awake'],
             datasets: [{
                 data: [totalSleep, awakeSeconds],
-                backgroundColor: [
-                    '#ef4444',
-                    '#10b981'
-                ],
-                borderColor: '#1e293b',
-                borderWidth: 2
+                backgroundColor: ['#FF4800', '#242424'],
+                borderColor: '#0C0C0C',
+                borderWidth: 3,
+                hoverBackgroundColor: ['#FF5A14', '#2E2E2E']
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            cutout: '68%',
             plugins: {
                 legend: {
                     position: 'bottom',
                     labels: {
-                        color: '#f1f5f9',
-                        font: { size: 14, weight: 'bold' },
-                        padding: 20
+                        color: '#999999',
+                        font: {
+                            family: 'DM Mono, monospace',
+                            size: 12,
+                            weight: '400'
+                        },
+                        padding: 24,
+                        usePointStyle: true,
+                        pointStyleWidth: 10
                     }
                 },
                 tooltip: {
+                    backgroundColor: '#141414',
+                    borderColor: '#242424',
+                    borderWidth: 1,
+                    titleColor: '#F0EBE3',
+                    bodyColor: '#999999',
+                    titleFont: { family: 'DM Mono, monospace', size: 11 },
+                    bodyFont: { family: 'DM Mono, monospace', size: 12 },
                     callbacks: {
                         label: function(context) {
                             const label = context.label || '';
                             const value = context.parsed || 0;
                             const time = formatTime(value, timeUnit);
-                            return `${label}: ${time}`;
+                            return `  ${label}: ${time}`;
                         }
                     }
                 }
@@ -173,13 +169,13 @@ function goBack() {
 
 function downloadResults() {
     const data = {
-        총_모니터링_시간: document.getElementById('totalDuration').textContent,
-        총_수면_시간: document.getElementById('totalSleep').textContent,
-        수면률_퍼센트: document.getElementById('sleepPercentage').textContent,
-        깨어있는_시간: document.getElementById('awakeTime').textContent,
-        시작_시간: document.getElementById('startTime').textContent,
-        종료_시간: document.getElementById('endTime').textContent,
-        생성_시간: new Date().toLocaleString('ko-KR')
+        'Total Monitored': document.getElementById('totalDuration').textContent,
+        'Total Sleep': document.getElementById('totalSleep').textContent,
+        'Sleep Rate (%)': document.getElementById('sleepPercentage').textContent,
+        'Awake Time': document.getElementById('awakeTime').textContent,
+        'Session Start': document.getElementById('startTime').textContent,
+        'Session End': document.getElementById('endTime').textContent,
+        'Exported At': new Date().toLocaleString('en-US')
     };
 
     const csv = Object.entries(data)
@@ -191,7 +187,7 @@ function downloadResults() {
     const url = URL.createObjectURL(blob);
 
     link.setAttribute('href', url);
-    link.setAttribute('download', `수면감지결과_${new Date().getTime()}.csv`);
+    link.setAttribute('download', `sleep-detection-results_${new Date().getTime()}.csv`);
     link.style.visibility = 'hidden';
 
     document.body.appendChild(link);
@@ -199,8 +195,6 @@ function downloadResults() {
     document.body.removeChild(link);
 }
 
-// 페이지 로드 시 초기화
 document.addEventListener('DOMContentLoaded', () => {
-    // summaryData는 템플릿에서 전달됨
-    // initializeResults(summaryData)는 템플릿에서 호출됨
+    // summaryData and initializeResults() are called from the template
 });

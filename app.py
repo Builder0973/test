@@ -37,16 +37,16 @@ def kill_process_on_port(port=8000):
         )
         pids = result.stdout.strip().split("\n")
         if not pids or pids == ['']:
-            print(f"✅ 포트 {port} 사용중인 프로세스 없음")
+            print(f"port {port} 사용중인 프로세스 없음")
             return
 
         # PID 하나씩 kill
         for pid in pids:
             subprocess.run(["kill", "-9", pid])
-            print(f"⚠️ 포트 {port} 종료: PID {pid}")
+            print(f"port {port} quit: PID {pid}")
 
     except Exception as e:
-        print(f"❌ 오류 발생: {e}")
+        print(f"error: {e}")
 
 # 사용 예
 # MediaPipe 모델 파일 다운로드
@@ -56,16 +56,15 @@ MODEL_PATH = 'face_landmarker.task'
 def download_model():
     """MediaPipe 모델 다운로드"""
     if not os.path.exists(MODEL_PATH):
-        print(f"모델 다운로드 중: {MODEL_PATH}")
+        print(f"model downloading: {MODEL_PATH}")
         try:
             urllib.request.urlretrieve(MODEL_URL, MODEL_PATH)
-            print("✓ 모델 다운로드 완료")
+            print("model download complete")
         except Exception as e:
-            print(f"✗ 모델 다운로드 실패: {e}")
+            print(f"model download failed: {e}")
             return False
     return True
 
-# 모델 초기화
 def init_face_detector():
     """FaceLandmarker 초기화"""
     try:
@@ -82,7 +81,7 @@ def init_face_detector():
         detector = vision.FaceLandmarker.create_from_options(options)
         return detector
     except Exception as e:
-        print(f"FaceLandmarker 초기화 실패: {e}")
+        print(f"FaceLandmarker initialization failed: {e}")
         return None
 
 face_detector = init_face_detector()
@@ -124,7 +123,7 @@ RIGHT_EYE = [33, 7, 163, 144, 145, 153, 154, 155, 133, 173, 157, 158, 159, 160, 
 def calculate_eye_aspect_ratio(landmarks, eye_indices):
     """눈의 종횡비(EAR) 계산"""
     if not landmarks or len(landmarks) == 0:
-        return 1.0  # 얼굴 없을 때는 눈이 떠있다고 가정
+        return 0.0  # 얼굴 없을 때는 눈이 떠있다고 가정
     
     try:
         # 표준 EAR 계산 방식
@@ -163,7 +162,8 @@ def is_eyes_closed(landmarks):
         
         # 임시 디버깅 (첫 번째만 출력)
         if recording_data['frame_count'] < 30:
-            print(f"L_EAR: {left_ear:.3f}, R_EAR: {right_ear:.3f}, AVG: {avg_ear:.3f}, THR: {threshold:.3f}, Closed: {avg_ear < threshold}")
+            pass
+            # print(f"L_EAR: {left_ear:.3f}, R_EAR: {right_ear:.3f}, AVG: {avg_ear:.3f}, THR: {threshold:.3f}, Closed: {avg_ear < threshold}")
         
         return avg_ear < threshold
     except Exception as e:
@@ -190,10 +190,10 @@ def init_arduino_serial():
     try:
         if arduino_serial is None or not arduino_serial.is_open:
             arduino_serial = serial.Serial(ARDUINO_PORT, ARDUINO_BAUD, timeout=2)
-            print(f"✓ Arduino 연결 성공: {ARDUINO_PORT}")
+            print(f"Arduino connection established: {ARDUINO_PORT}")
         return True
     except Exception as e:
-        print(f"✗ Arduino 연결 실패: {e}")
+        print(f"✗ Arduino connection failed: {e}")
         return False
 
 def read_arduino_frame():
@@ -234,7 +234,7 @@ def read_arduino_frame():
         
         return img
     except Exception as e:
-        print(f"✗ Arduino 프레임 읽기 오류: {e}")
+        print(f"Arduino frame read error: {e}")
         return None
 
 def process_frame(frame):
@@ -272,19 +272,29 @@ def process_frame(frame):
         
         draw_eye_landmarks(output_frame, landmarks, LEFT_EYE, left_color)
         draw_eye_landmarks(output_frame, landmarks, RIGHT_EYE, right_color)
+    else:
+        # 얼굴이 감지되지 않으면 sleeping 상태로 간주
+        is_sleeping_now = True
+        cv2.putText(output_frame, "No Face Detected", (10, 60), 
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
     
     # 수면 상태 업데이트
     current_time = datetime.now()
     
     if recording_data['is_recording']:
         if is_sleeping_now:
-            # 눈이 감긴 상태
+            # 눈이 감긴 상태 또는 얼굴이 감지되지 않은 상태
             if recording_data['eyes_closed_start'] is None:
                 recording_data['eyes_closed_start'] = current_time
             
             eyes_closed_duration = (current_time - recording_data['eyes_closed_start']).total_seconds()
             
-            if eyes_closed_duration >= settings['sleep_duration_threshold'] and not recording_data['is_sleeping']:
+            # 얼굴이 감지되지 않으면 즉시 수면 상태로 전환
+            # 얼굴이 감지되면 threshold 시간 후 수면 상태로 전환
+            should_sleep = (eyes_closed_duration >= settings['sleep_duration_threshold']) or \
+                          (not detection_result.face_landmarks)
+            
+            if should_sleep and not recording_data['is_sleeping']:
                 # 수면 시작
                 recording_data['is_sleeping'] = True
                 recording_data['current_sleep_start'] = recording_data['eyes_closed_start']
@@ -310,7 +320,7 @@ def process_frame(frame):
         mins = int(elapsed // 60)
         secs = int(elapsed % 60)
         
-        status_text = f"Status: {'🔴 SLEEPING' if recording_data['is_sleeping'] else '✅ AWAKE'} | {mins:02d}:{secs:02d}"
+        status_text = f"Status: {'SLEEPING' if recording_data['is_sleeping'] else '✅ AWAKE'} | {mins:02d}:{secs:02d}"
         
         # 20초 카운트다운 표시
         if is_sleeping_now and recording_data['eyes_closed_start']:
@@ -344,32 +354,32 @@ def generate_frames():
         # Arduino 모드 선택
         if USE_ARDUINO_CAMERA:
             if not init_arduino_serial():
-                print("⚠️ Arduino 카메라 초기화 실패, 웹캠으로 전환")
+                print("Arduino camera initialization failed, switching to webcam")
                 USE_ARDUINO_CAMERA = False
                 # Fallback to webcam
                 yield from _generate_webcam_frames()
                 return
             
             # Arduino 카메라 모드
-            print("🎥 Arduino 카메라 모드 시작")
+            print("🎥 Arduino camera mode")
             yield from _generate_arduino_frames()
         else:
             # 웹캠 모드
-            print("📷 웹캠 모드 시작")
+            print("Webcam mode")
             yield from _generate_webcam_frames()
     
     except Exception as e:
-        print(f"프레임 생성 오류: {e}")
+        print(f"Frame generation error: {e}")
     finally:
         if arduino_serial and arduino_serial.is_open:
             arduino_serial.close()
-            print("✓ Arduino 연결 해제")
+            print("Arduino connection closed")
 
 def _generate_arduino_frames():
     """Arduino 카메라로부터 프레임 생성"""
     global current_frame, arduino_serial
-    
-    print("🎥 Arduino 카메라로부터 프레임 수신 중...")
+
+    print("Arduino camera mode")
     while True:
         frame = read_arduino_frame()
         
@@ -399,7 +409,7 @@ def _generate_webcam_frames():
     
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
-        print("⚠️ 웹캠을 열 수 없습니다.")
+        print("Can not open webcam")
         while True:
             frame = np.zeros((480, 640, 3), dtype=np.uint8)
             cv2.putText(frame, "No Camera Available", (150, 240), 
@@ -415,8 +425,8 @@ def _generate_webcam_frames():
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
     cap.set(cv2.CAP_PROP_FPS, 20)
-    
-    print("📷 웹캠으로부터 프레임 수신 중...")
+
+    print("Receiving frames from webcam...")
     while True:
         success, frame = cap.read()
         if not success:
@@ -512,18 +522,18 @@ def switch_camera():
         mode = data['mode'].lower()
         if mode == 'arduino':
             USE_ARDUINO_CAMERA = True
-            message = "🎥 Arduino 카메라 모드로 전환"
+            message = "Switching to Arduino camera mode"
         elif mode == 'webcam':
             USE_ARDUINO_CAMERA = False
-            message = "📷 웹캠 모드로 전환"
+            message = "Switching to webcam mode"
         else:
             return jsonify({'status': 'error', 'message': 'Invalid mode'}), 400
     else:
         # 토글
         USE_ARDUINO_CAMERA = not USE_ARDUINO_CAMERA
-        message = f"{'🎥 Arduino' if USE_ARDUINO_CAMERA else '📷 Webcam'} 모드로 전환"
+        message = f"{'Arduino' if USE_ARDUINO_CAMERA else '📷 Webcam'} 모드로 전환"
     
-    print(message)
+    # print(message)
     return jsonify({
         'status': 'success', 
         'message': message,
@@ -586,10 +596,10 @@ def results():
 if __name__ == '__main__':
     port = 8000
     print("\n" + "="*60)
-    print("🚀 수면 감지 모니터링 시스템 시작")
+    print("sleep detector monitoring system")
     print("="*60)
-    print(f"📍 웹사이트: http://localhost:{port}")
-    print("⏹️  중지: Ctrl+C")
+    print(f"url : http://localhost:{port}")
+    print("stop server: Ctrl+C")
     print("="*60 + "\n")
 
 
